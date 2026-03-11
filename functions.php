@@ -12,6 +12,21 @@ if ( ! defined( 'EDITORIAL_STARTER_VERSION' ) ) {
     define( 'EDITORIAL_STARTER_VERSION', $theme_version ? $theme_version : '1.0.0' );
 }
 
+if ( ! function_exists( 'editorial_starter_log_runtime_exception' ) ) {
+    /**
+     * Log a guarded runtime exception when debugging is enabled.
+     *
+     * @param string    $scope     Failing scope label.
+     * @param Throwable $exception Thrown exception.
+     * @return void
+     */
+    function editorial_starter_log_runtime_exception( $scope, Throwable $exception ) {
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( sprintf( 'editorial-starter %1$s failed: %2$s', $scope, $exception->getMessage() ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+        }
+    }
+}
+
 if ( ! function_exists( 'editorial_starter_setup' ) ) :
     /**
      * Set up theme defaults and registers support for WordPress features.
@@ -188,33 +203,22 @@ add_action( 'widgets_init', 'editorial_starter_widgets_init' );
  * Enqueue scripts and styles.
  */
 function editorial_starter_scripts() {
-    $theme_version = EDITORIAL_STARTER_VERSION;
+    try {
+        $theme_version = EDITORIAL_STARTER_VERSION;
 
-    wp_enqueue_style(
-        'editorial-starter-fonts',
-        'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:wght@400;600;700&family=Space+Grotesk:wght@500;700&display=swap',
-        array(),
-        null
-    );
+        wp_enqueue_style(
+            'editorial-starter-fonts',
+            'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:wght@400;600;700&family=Space+Grotesk:wght@500;700&display=swap',
+            array(),
+            null
+        );
 
-    wp_enqueue_style( 'editorial-starter-style', get_stylesheet_uri(), array( 'editorial-starter-fonts' ), $theme_version );
-    wp_enqueue_style( 'editorial-starter-theme', get_template_directory_uri() . '/assets/css/theme.css', array( 'editorial-starter-style' ), $theme_version );
+        wp_enqueue_style( 'editorial-starter-style', get_stylesheet_uri(), array( 'editorial-starter-fonts' ), $theme_version );
+        wp_enqueue_style( 'editorial-starter-theme', get_template_directory_uri() . '/assets/css/theme.css', array( 'editorial-starter-style' ), $theme_version );
 
-    wp_enqueue_script(
-        'editorial-starter-theme',
-        get_template_directory_uri() . '/assets/js/theme.js',
-        array(),
-        $theme_version,
-        array(
-            'in_footer' => true,
-            'strategy'  => 'defer',
-        )
-    );
-
-    if ( editorial_starter_should_enqueue_shopify_products() ) {
         wp_enqueue_script(
-            'editorial-starter-shopify-products',
-            get_template_directory_uri() . '/assets/js/shopify-products.js',
+            'editorial-starter-theme',
+            get_template_directory_uri() . '/assets/js/theme.js',
             array(),
             $theme_version,
             array(
@@ -222,16 +226,31 @@ function editorial_starter_scripts() {
                 'strategy'  => 'defer',
             )
         );
-    }
 
-    wp_localize_script(
-        'editorial-starter-theme',
-        'editorialStarterNav',
-        array(
-            'expand'  => __( 'Expand submenu', 'editorial-starter' ),
-            'collapse' => __( 'Collapse submenu', 'editorial-starter' ),
-        )
-    );
+        if ( editorial_starter_should_enqueue_shopify_products() ) {
+            wp_enqueue_script(
+                'editorial-starter-shopify-products',
+                get_template_directory_uri() . '/assets/js/shopify-products.js',
+                array(),
+                $theme_version,
+                array(
+                    'in_footer' => true,
+                    'strategy'  => 'defer',
+                )
+            );
+        }
+
+        wp_localize_script(
+            'editorial-starter-theme',
+            'editorialStarterNav',
+            array(
+                'expand'   => __( 'Expand submenu', 'editorial-starter' ),
+                'collapse' => __( 'Collapse submenu', 'editorial-starter' ),
+            )
+        );
+    } catch ( Throwable $exception ) {
+        editorial_starter_log_runtime_exception( 'scripts', $exception );
+    }
 }
 add_action( 'wp_enqueue_scripts', 'editorial_starter_scripts' );
 
@@ -243,12 +262,16 @@ add_action( 'wp_enqueue_scripts', 'editorial_starter_scripts' );
  * @return array
  */
 function editorial_starter_resource_hints( $urls, $relation_type ) {
-    if ( 'preconnect' === $relation_type ) {
-        $urls[] = 'https://fonts.googleapis.com';
-        $urls[] = array(
-            'href'        => 'https://fonts.gstatic.com',
-            'crossorigin' => 'anonymous',
-        );
+    try {
+        if ( 'preconnect' === $relation_type ) {
+            $urls[] = 'https://fonts.googleapis.com';
+            $urls[] = array(
+                'href'        => 'https://fonts.gstatic.com',
+                'crossorigin' => 'anonymous',
+            );
+        }
+    } catch ( Throwable $exception ) {
+        editorial_starter_log_runtime_exception( 'resource_hints', $exception );
     }
 
     return $urls;
@@ -259,8 +282,12 @@ add_filter( 'wp_resource_hints', 'editorial_starter_resource_hints', 10, 2 );
  * Ensure threaded comments script is available when required.
  */
 function editorial_starter_maybe_enqueue_comment_reply() {
-    if ( is_singular() && comments_open() && get_option( 'thread_comments' ) ) {
-        wp_enqueue_script( 'comment-reply' );
+    try {
+        if ( is_singular() && comments_open() && get_option( 'thread_comments' ) ) {
+            wp_enqueue_script( 'comment-reply' );
+        }
+    } catch ( Throwable $exception ) {
+        editorial_starter_log_runtime_exception( 'comment_reply', $exception );
     }
 }
 add_action( 'wp_enqueue_scripts', 'editorial_starter_maybe_enqueue_comment_reply' );
@@ -292,7 +319,21 @@ function editorial_starter_should_enqueue_shopify_products() {
  * @return bool
  */
 function editorial_starter_is_primary_cta_enabled() {
-    return (bool) get_theme_mod( 'editorial_starter_primary_cta_enabled', true );
+    $enabled = get_theme_mod( 'editorial_starter_primary_cta_enabled', true );
+
+    if ( is_bool( $enabled ) ) {
+        return $enabled;
+    }
+
+    if ( is_numeric( $enabled ) ) {
+        return (bool) (int) $enabled;
+    }
+
+    if ( is_string( $enabled ) ) {
+        return ! in_array( strtolower( trim( $enabled ) ), array( '', '0', 'false', 'no', 'off' ), true );
+    }
+
+    return true;
 }
 
 /**
@@ -303,6 +344,7 @@ function editorial_starter_is_primary_cta_enabled() {
 function editorial_starter_get_primary_cta_url() {
     $default_url = home_url( '/featured-story/' );
     $cta_url     = get_theme_mod( 'editorial_starter_primary_cta_url', $default_url );
+    $cta_url     = editorial_starter_normalize_string_value( $cta_url, $default_url );
 
     if ( empty( $cta_url ) ) {
         $cta_url = $default_url;
@@ -318,7 +360,7 @@ function editorial_starter_get_primary_cta_url() {
  */
 function editorial_starter_get_primary_cta_label() {
     $fallback = __( 'Read the featured story', 'editorial-starter' );
-    $label    = trim( (string) get_theme_mod( 'editorial_starter_primary_cta_label', $fallback ) );
+    $label    = trim( editorial_starter_normalize_string_value( get_theme_mod( 'editorial_starter_primary_cta_label', $fallback ), $fallback ) );
 
     return '' !== $label ? $label : $fallback;
 }
@@ -330,7 +372,7 @@ function editorial_starter_get_primary_cta_label() {
  */
 function editorial_starter_get_primary_card_heading() {
     $fallback = __( 'Ready to launch your main story?', 'editorial-starter' );
-    $heading  = trim( (string) get_theme_mod( 'editorial_starter_primary_card_heading', $fallback ) );
+    $heading  = trim( editorial_starter_normalize_string_value( get_theme_mod( 'editorial_starter_primary_card_heading', $fallback ), $fallback ) );
 
     return '' !== $heading ? $heading : $fallback;
 }
@@ -342,7 +384,7 @@ function editorial_starter_get_primary_card_heading() {
  */
 function editorial_starter_get_primary_card_description() {
     $fallback    = __( 'Point this section at a flagship article, service page, product detail, or campaign landing page.', 'editorial-starter' );
-    $description = trim( (string) get_theme_mod( 'editorial_starter_primary_card_description', $fallback ) );
+    $description = trim( editorial_starter_normalize_string_value( get_theme_mod( 'editorial_starter_primary_card_description', $fallback ), $fallback ) );
 
     return '' !== $description ? $description : $fallback;
 }
@@ -354,7 +396,7 @@ function editorial_starter_get_primary_card_description() {
  */
 function editorial_starter_get_secondary_cta_label() {
     $fallback = __( 'Join the newsletter', 'editorial-starter' );
-    $label    = trim( (string) get_theme_mod( 'editorial_starter_secondary_cta_label', $fallback ) );
+    $label    = trim( editorial_starter_normalize_string_value( get_theme_mod( 'editorial_starter_secondary_cta_label', $fallback ), $fallback ) );
 
     return '' !== $label ? $label : $fallback;
 }

@@ -55,11 +55,20 @@ async function expectNoHorizontalOverflow(page) {
   ).toBeLessThanOrEqual(1);
 }
 
+async function expectNoCriticalErrorScreen(page) {
+  await expect(
+    page.locator('#error-page'),
+    `Critical WordPress error screen rendered at ${baseUrl}`
+  ).toHaveCount(0);
+  await expect(page).not.toHaveTitle(/WordPress.+Error/i);
+}
+
 test.describe('Live site visual smoke', () => {
   test('desktop home can render without horizontal overflow', async ({ page }, testInfo) => {
     await page.goto(baseUrl, { waitUntil: 'networkidle' });
     await dismissOverlays(page);
 
+    await expectNoCriticalErrorScreen(page);
     await expect(page.locator('body')).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
@@ -77,6 +86,7 @@ test.describe('Live site visual smoke', () => {
       await page.goto(baseUrl, { waitUntil: 'networkidle' });
       await dismissOverlays(page);
 
+      await expectNoCriticalErrorScreen(page);
       await expectNoHorizontalOverflow(page);
 
       const viewportWidth = page.viewportSize().width;

@@ -20,6 +20,27 @@ if ( ! function_exists( 'editorial_starter_get_default_meta_description' ) ) {
     }
 }
 
+if ( ! function_exists( 'editorial_starter_normalize_string_value' ) ) {
+    /**
+     * Normalize potentially unsafe values to strings for meta output.
+     *
+     * @param mixed  $value    Raw value.
+     * @param string $fallback Fallback string.
+     * @return string
+     */
+    function editorial_starter_normalize_string_value( $value, $fallback = '' ) {
+        if ( is_string( $value ) ) {
+            return $value;
+        }
+
+        if ( is_scalar( $value ) || null === $value ) {
+            return (string) $value;
+        }
+
+        return $fallback;
+    }
+}
+
 if ( ! function_exists( 'editorial_starter_get_meta_description' ) ) {
     /**
      * Resolve the best available meta description for the current request.
@@ -56,6 +77,7 @@ if ( ! function_exists( 'editorial_starter_get_meta_description' ) ) {
         }
 
         $description = apply_filters( 'editorial_starter_meta_description', $description );
+        $description = editorial_starter_normalize_string_value( $description );
 
         return trim( wp_strip_all_tags( $description ) );
     }
@@ -289,111 +311,115 @@ if ( ! function_exists( 'editorial_starter_output_seo_meta' ) ) {
             return;
         }
 
-        $description = editorial_starter_get_meta_description();
-        $title       = wp_get_document_title();
-        $canonical   = wp_get_canonical_url();
+        try {
+            $description = editorial_starter_get_meta_description();
+            $site_name   = editorial_starter_normalize_string_value( get_bloginfo( 'name' ), home_url( '/' ) );
+            $title       = editorial_starter_normalize_string_value( wp_get_document_title(), $site_name );
+            $canonical   = editorial_starter_normalize_string_value( wp_get_canonical_url() );
 
-        if ( ! $canonical ) {
-            if ( is_front_page() ) {
-                $canonical = home_url( '/' );
-            } elseif ( is_home() ) {
-                $page_for_posts = (int) get_option( 'page_for_posts' );
-                $canonical      = $page_for_posts ? get_permalink( $page_for_posts ) : home_url( '/' );
-            } elseif ( is_singular() ) {
-                $canonical = get_permalink();
+            if ( '' === $canonical ) {
+                if ( is_front_page() ) {
+                    $canonical = home_url( '/' );
+                } elseif ( is_home() ) {
+                    $page_for_posts = (int) get_option( 'page_for_posts' );
+                    $canonical      = $page_for_posts ? get_permalink( $page_for_posts ) : home_url( '/' );
+                } elseif ( is_singular() ) {
+                    $canonical = get_permalink();
+                }
+            }
+
+            $canonical  = editorial_starter_normalize_string_value( $canonical, home_url( '/' ) );
+            $og_type    = is_singular() ? 'article' : 'website';
+            $locale     = str_replace( '_', '-', editorial_starter_normalize_string_value( get_locale(), 'en_US' ) );
+            $image_data = editorial_starter_get_primary_image_data();
+
+            if ( $description ) {
+                echo '<meta name="description" content="' . esc_attr( $description ) . '" />' . "\n";
+            }
+
+            echo '<link rel="canonical" href="' . esc_url( $canonical ) . '" />' . "\n";
+            echo '<meta property="og:title" content="' . esc_attr( $title ) . '" />' . "\n";
+
+            if ( $description ) {
+                echo '<meta property="og:description" content="' . esc_attr( $description ) . '" />' . "\n";
+            }
+
+            echo '<meta property="og:type" content="' . esc_attr( $og_type ) . '" />' . "\n";
+            echo '<meta property="og:url" content="' . esc_url( $canonical ) . '" />' . "\n";
+            echo '<meta property="og:site_name" content="' . esc_attr( $site_name ) . '" />' . "\n";
+            echo '<meta property="og:locale" content="' . esc_attr( $locale ) . '" />' . "\n";
+
+            if ( is_singular( 'post' ) ) {
+                echo '<meta property="article:published_time" content="' . esc_attr( get_the_date( DATE_W3C ) ) . '" />' . "\n";
+                echo '<meta property="article:modified_time" content="' . esc_attr( get_the_modified_date( DATE_W3C ) ) . '" />' . "\n";
+                echo '<meta property="article:author" content="' . esc_attr( get_the_author() ) . '" />' . "\n";
+            }
+
+            if ( $image_data ) {
+                echo '<meta property="og:image" content="' . esc_url( $image_data[0] ) . '" />' . "\n";
+
+                if ( ! empty( $image_data[1] ) && ! empty( $image_data[2] ) ) {
+                    echo '<meta property="og:image:width" content="' . esc_attr( (string) (int) $image_data[1] ) . '" />' . "\n";
+                    echo '<meta property="og:image:height" content="' . esc_attr( (string) (int) $image_data[2] ) . '" />' . "\n";
+                }
+            }
+
+            echo '<meta name="twitter:card" content="summary_large_image" />' . "\n";
+            echo '<meta name="twitter:title" content="' . esc_attr( $title ) . '" />' . "\n";
+
+            if ( $description ) {
+                echo '<meta name="twitter:description" content="' . esc_attr( $description ) . '" />' . "\n";
+            }
+
+            if ( $image_data ) {
+                echo '<meta name="twitter:image" content="' . esc_url( $image_data[0] ) . '" />' . "\n";
+            }
+
+            $organization_schema = editorial_starter_get_organization_schema();
+
+            $schema_graph = array(
+                array(
+                    '@id'             => home_url( '/#website' ),
+                    '@type'           => 'WebSite',
+                    'url'             => home_url( '/' ),
+                    'name'            => $site_name,
+                    'description'     => $description,
+                    'inLanguage'      => get_bloginfo( 'language' ),
+                    'publisher'       => array(
+                        '@id' => $organization_schema['@id'],
+                    ),
+                    'potentialAction' => array(
+                        '@type'       => 'SearchAction',
+                        'target'      => home_url( '?s={search_term_string}' ),
+                        'query-input' => 'required name=search_term_string',
+                    ),
+                ),
+                $organization_schema,
+            );
+
+            $article_schema = editorial_starter_get_article_schema( $canonical, $description, $organization_schema, $image_data );
+
+            if ( ! empty( $article_schema ) ) {
+                $schema_graph[] = $article_schema;
+            }
+
+            $breadcrumb_schema = editorial_starter_get_breadcrumb_list_schema();
+
+            if ( ! empty( $breadcrumb_schema ) ) {
+                $schema_graph[] = $breadcrumb_schema;
+            }
+
+            $schema = array(
+                '@context' => 'https://schema.org',
+                '@graph'   => $schema_graph,
+            );
+
+            echo '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
+        } catch ( Throwable $exception ) {
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'editorial-starter SEO meta failed: ' . $exception->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
             }
         }
-
-        $canonical = $canonical ? $canonical : home_url( '/' );
-
-        $og_type   = is_singular() ? 'article' : 'website';
-        $site_name = get_bloginfo( 'name' );
-        $locale    = str_replace( '_', '-', get_locale() );
-
-        $image_data = editorial_starter_get_primary_image_data();
-
-        if ( $description ) {
-            echo '<meta name="description" content="' . esc_attr( $description ) . '" />' . "\n";
-        }
-
-        echo '<link rel="canonical" href="' . esc_url( $canonical ) . '" />' . "\n";
-        echo '<meta property="og:title" content="' . esc_attr( $title ) . '" />' . "\n";
-
-        if ( $description ) {
-            echo '<meta property="og:description" content="' . esc_attr( $description ) . '" />' . "\n";
-        }
-
-        echo '<meta property="og:type" content="' . esc_attr( $og_type ) . '" />' . "\n";
-        echo '<meta property="og:url" content="' . esc_url( $canonical ) . '" />' . "\n";
-        echo '<meta property="og:site_name" content="' . esc_attr( $site_name ) . '" />' . "\n";
-        echo '<meta property="og:locale" content="' . esc_attr( $locale ) . '" />' . "\n";
-
-        if ( is_singular( 'post' ) ) {
-            echo '<meta property="article:published_time" content="' . esc_attr( get_the_date( DATE_W3C ) ) . '" />' . "\n";
-            echo '<meta property="article:modified_time" content="' . esc_attr( get_the_modified_date( DATE_W3C ) ) . '" />' . "\n";
-            echo '<meta property="article:author" content="' . esc_attr( get_the_author() ) . '" />' . "\n";
-        }
-
-        if ( $image_data ) {
-            echo '<meta property="og:image" content="' . esc_url( $image_data[0] ) . '" />' . "\n";
-
-            if ( ! empty( $image_data[1] ) && ! empty( $image_data[2] ) ) {
-                echo '<meta property="og:image:width" content="' . esc_attr( (string) (int) $image_data[1] ) . '" />' . "\n";
-                echo '<meta property="og:image:height" content="' . esc_attr( (string) (int) $image_data[2] ) . '" />' . "\n";
-            }
-        }
-
-        echo '<meta name="twitter:card" content="summary_large_image" />' . "\n";
-        echo '<meta name="twitter:title" content="' . esc_attr( $title ) . '" />' . "\n";
-
-        if ( $description ) {
-            echo '<meta name="twitter:description" content="' . esc_attr( $description ) . '" />' . "\n";
-        }
-
-        if ( $image_data ) {
-            echo '<meta name="twitter:image" content="' . esc_url( $image_data[0] ) . '" />' . "\n";
-        }
-
-        $organization_schema = editorial_starter_get_organization_schema();
-
-        $schema_graph = array(
-            array(
-                '@id'             => home_url( '/#website' ),
-                '@type'           => 'WebSite',
-                'url'             => home_url( '/' ),
-                'name'            => $site_name,
-                'description'     => $description,
-                'inLanguage'      => get_bloginfo( 'language' ),
-                'publisher'       => array(
-                    '@id' => $organization_schema['@id'],
-                ),
-                'potentialAction' => array(
-                    '@type'       => 'SearchAction',
-                    'target'      => home_url( '?s={search_term_string}' ),
-                    'query-input' => 'required name=search_term_string',
-                ),
-            ),
-            $organization_schema,
-        );
-
-        $article_schema = editorial_starter_get_article_schema( $canonical, $description, $organization_schema, $image_data );
-
-        if ( ! empty( $article_schema ) ) {
-            $schema_graph[] = $article_schema;
-        }
-
-        $breadcrumb_schema = editorial_starter_get_breadcrumb_list_schema();
-
-        if ( ! empty( $breadcrumb_schema ) ) {
-            $schema_graph[] = $breadcrumb_schema;
-        }
-
-        $schema = array(
-            '@context' => 'https://schema.org',
-            '@graph'   => $schema_graph,
-        );
-
-        echo '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . '</script>' . "\n";
     }
 }
 add_action( 'wp_head', 'editorial_starter_output_seo_meta', 5 );
@@ -406,6 +432,10 @@ if ( ! function_exists( 'editorial_starter_robots_directives' ) ) {
      * @return array<string, bool>
      */
     function editorial_starter_robots_directives( $robots ) {
+        if ( ! is_array( $robots ) ) {
+            $robots = array();
+        }
+
         if ( is_search() || is_404() ) {
             $robots['noindex'] = true;
             $robots['follow']  = true;

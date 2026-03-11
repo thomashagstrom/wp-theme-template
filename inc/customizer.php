@@ -185,7 +185,15 @@ if ( ! function_exists( 'editorial_starter_sanitize_social_links' ) ) {
             $value = wp_json_encode( $value );
         }
 
-        $decoded = json_decode( wp_unslash( (string) $value ), true );
+        if ( is_string( $value ) ) {
+            $value = wp_unslash( $value );
+        } elseif ( is_scalar( $value ) || null === $value ) {
+            $value = (string) $value;
+        } else {
+            return wp_json_encode( array() );
+        }
+
+        $decoded = json_decode( $value, true );
 
         if ( ! is_array( $decoded ) ) {
             return wp_json_encode( array() );
@@ -220,12 +228,14 @@ if ( ! function_exists( 'editorial_starter_get_social_links' ) ) {
      * @return array
      */
     function editorial_starter_get_social_links() {
-        $raw = get_theme_mod(
+        $fallback = wp_json_encode( editorial_starter_get_default_social_links() );
+        $raw      = get_theme_mod(
             'editorial_starter_footer_social_links',
-            wp_json_encode( editorial_starter_get_default_social_links() )
+            $fallback
         );
+        $raw      = editorial_starter_normalize_string_value( $raw, $fallback );
 
-        $decoded = json_decode( (string) $raw, true );
+        $decoded = json_decode( $raw, true );
 
         if ( ! is_array( $decoded ) ) {
             return array();
@@ -742,17 +752,27 @@ add_action( 'customize_register', 'editorial_starter_customize_register' );
  * Inject dynamic Customizer styles.
  */
 function editorial_starter_customizer_css() {
-    $accent = get_theme_mod( 'editorial_starter_accent_color', '#d0915d' );
+    try {
+        $accent = get_theme_mod( 'editorial_starter_accent_color', '#d0915d' );
+        $accent = is_scalar( $accent ) || null === $accent ? (string) $accent : '#d0915d';
+        $accent = sanitize_hex_color( $accent );
 
-    $css = sprintf(
-        ':root { --accent: %1$s; } .button, .wp-block-button__link, input[type="submit"] { background: linear-gradient(120deg, %1$s, var(--accent-strong)); }
-        .primary-navigation a::after, .section-heading::before, .read-more::after, .pagination .current { background: linear-gradient(120deg, %1$s, var(--accent-strong)); }
-        .post-meta span::before { color: %1$s; }
-        .orbit-node, .timeline::before, blockquote { border-color: %1$s; }
-        .footer-social a { border-color: color-mix(in srgb, %1$s 25%, transparent); }',
-        esc_html( $accent )
-    );
+        if ( ! $accent ) {
+            $accent = '#d0915d';
+        }
 
-    wp_add_inline_style( 'editorial-starter-theme', $css );
+        $css = sprintf(
+            ':root { --accent: %1$s; } .button, .wp-block-button__link, input[type="submit"] { background: linear-gradient(120deg, %1$s, var(--accent-strong)); }
+            .primary-navigation a::after, .section-heading::before, .read-more::after, .pagination .current { background: linear-gradient(120deg, %1$s, var(--accent-strong)); }
+            .post-meta span::before { color: %1$s; }
+            .orbit-node, .timeline::before, blockquote { border-color: %1$s; }
+            .footer-social a { border-color: color-mix(in srgb, %1$s 25%, transparent); }',
+            esc_html( $accent )
+        );
+
+        wp_add_inline_style( 'editorial-starter-theme', $css );
+    } catch ( Throwable $exception ) {
+        editorial_starter_log_runtime_exception( 'customizer_css', $exception );
+    }
 }
 add_action( 'wp_enqueue_scripts', 'editorial_starter_customizer_css', 20 );
