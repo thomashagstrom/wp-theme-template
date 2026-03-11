@@ -1,0 +1,92 @@
+{
+  "$schema": "https://schemas.wp.org/wp/6.5/theme.json",
+  "version": 2,
+  "settings": {
+    "appearanceTools": true,
+    "color": {
+      "defaultPalette": false,
+      "defaultGradients": false,
+      "palette": [
+        { "name": "Copper Accent", "slug": "accent", "color": "#d0915d" },
+        { "name": "Sage Accent", "slug": "accent-strong", "color": "#7c9b92" },
+        { "name": "Ink Surface", "slug": "surface", "color": "#1d1917" },
+        { "name": "Deep Ink", "slug": "surface-strong", "color": "#14110f" },
+        { "name": "Paper Text", "slug": "text-primary", "color": "#f4efe6" },
+        { "name": "Muted Text", "slug": "text-secondary", "color": "#c1b5a7" }
+      ],
+      "gradients": [
+        {
+          "name": "Copper Wash",
+          "slug": "copper-wash",
+          "gradient": "linear-gradient(135deg,#d0915d 0%,#7c9b92 100%)"
+        },
+        {
+          "name": "Ink Fade",
+          "slug": "ink-fade",
+          "gradient": "linear-gradient(145deg,rgba(208,145,93,0.24) 0%,rgba(20,17,15,0.92) 100%)"
+        }
+      ]
+    },
+    "layout": {
+      "contentSize": "720px",
+      "wideSize": "1180px"
+    },
+    "spacing": {
+      "units": ["px", "rem", "vw", "vh", "%"],
+      "blockGap": "1.5rem"
+    },
+    "typography": {
+      "fontFamilies": [
+        {
+          "fontFamily": "\"Source Serif 4\", Georgia, serif",
+          "name": "Source Serif 4",
+          "slug": "body"
+        },
+        {
+          "fontFamily": "\"Space Grotesk\", \"Trebuchet MS\", sans-serif",
+          "name": "Space Grotesk",
+          "slug": "heading"
+        },
+        {
+          "fontFamily": "\"IBM Plex Mono\", monospace",
+          "name": "IBM Plex Mono",
+          "slug": "mono"
+        }
+      ],
+      "fontSizes": [
+        { "name": "Small", "slug": "small", "size": "12px" },
+        { "name": "Body", "slug": "body", "size": "16px" },
+        { "name": "Lead", "slug": "lead", "size": "22px" },
+        { "name": "Display", "slug": "display", "size": "32px" },
+        { "name": "Poster", "slug": "poster", "size": "48px" }
+      ],
+      "fluid": true
+    }
+  },
+  "styles": {
+    "color": {
+      "background": "var(--wp--preset--color--surface-strong)",
+      "text": "var(--wp--preset--color--text-primary)"
+    },
+    "elements": {
+      "link": {
+        "color": {
+          "text": "var(--wp--preset--color--accent)"
+        },
+        ":hover": {
+          "color": {
+            "text": "var(--wp--preset--color--accent-strong)"
+          }
+        },
+        ":focus": {
+          "color": {
+            "text": "var(--wp--preset--color--accent-strong)"
+          }
+        }
+      }
+    },
+    "typography": {
+      "fontFamily": "var(--wp--preset--font-family--body)"
+    }
+  }
+}

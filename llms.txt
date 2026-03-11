@@ -1,0 +1,11 @@
+# example.com
+
+Purpose: generic crawl hints for a site built from Editorial Starter.
+
+- Site: https://example.com/
+- Homepage: https://example.com/
+- Posts index: https://example.com/blog/
+- Newsletter section: https://example.com/#newsletter-signup
+- Featured story placeholder: https://example.com/featured-story/
+
+More detail: https://example.com/llms-full.txt

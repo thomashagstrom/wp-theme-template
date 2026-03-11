@@ -1,0 +1,22 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Build artefacts
+/dist/
+*.zip
+# Compiled localization binaries
+*.mo
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Composer (if ever used locally)
+/vendor/
+/wp-cli.phar
+
+pattern-previews/
+.test-previews/
+playwright-report/
+test-results/

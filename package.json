@@ -1,0 +1,42 @@
+{
+  "name": "editorial-starter",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build:changelog": "conventional-changelog -n scripts/changelog.config.cjs -i CHANGELOG.md -s -r 0",
+    "build:pattern-previews": "php scripts/update-pattern-previews.php",
+    "build:release": "php scripts/build-release.php",
+    "build:test-previews": "node scripts/build-test-previews.mjs",
+    "clean": "rimraf pattern-previews dist",
+    "i18n:pot": "sh scripts/make-pot.sh",
+    "init-theme": "node scripts/init-theme.mjs",
+    "lint:php": "if [ -x vendor/bin/phpcs ]; then vendor/bin/phpcs -n --runtime-set installed_paths vendor/wp-coding-standards/wpcs,vendor/phpcsstandards/phpcsutils,vendor/phpcsstandards/phpcsextra --standard=.phpcs.xml.dist; else echo 'phpcs not found; run composer install' >&2; exit 1; fi",
+    "lint": "npm run lint:php",
+    "playwright:codegen:live": "playwright codegen https://example.com",
+    "playwright:open:live": "playwright open https://example.com",
+    "postinstall": "npx playwright install chromium",
+    "publish": "npm run clean && npm run lint:php && npm run build:pattern-previews && npm run build:release",
+    "release:bump": "node scripts/release-bump.mjs",
+    "release:major": "npm run release:bump -- major",
+    "release:minor": "npm run release:bump -- minor",
+    "release:patch": "npm run release:bump -- patch",
+    "setup:wp-cli": "sh scripts/setup-wp-cli.sh",
+    "test:a11y": "npm run test:prepare && playwright test tests/e2e/a11y.spec.js",
+    "test:business": "npm run test:prepare && playwright test tests/e2e/analytics-events.spec.js tests/e2e/navigation.spec.js tests/e2e/shopify-products.spec.js",
+    "test:dev": "npm run test:init-theme && npm run test:e2e",
+    "test:e2e": "npm run test:prepare && playwright test tests/e2e/mobile-overflow.spec.js",
+    "test:init-theme": "node --test tests/init-theme.test.mjs",
+    "test:live:ui": "playwright test tests/e2e/live-site-visual.spec.js --ui",
+    "test:live:visual": "playwright test tests/e2e/live-site-visual.spec.js --headed --workers=1",
+    "test:prepare": "npm run build:pattern-previews && npm run build:test-previews",
+    "test:visual": "npm run test:prepare && playwright test tests/e2e/visual-layout.spec.js",
+    "ts": "node -e \"console.log('No TypeScript sources to type-check in this theme.')\"",
+    "verify": "npm run lint && npm run ts && npm run test:init-theme && npm run test:prepare && playwright test tests/e2e/mobile-overflow.spec.js tests/e2e/visual-layout.spec.js tests/e2e/a11y.spec.js tests/e2e/analytics-events.spec.js tests/e2e/navigation.spec.js tests/e2e/shopify-products.spec.js"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.58.2",
+    "conventional-changelog-cli": "^5.0.0",
+    "rimraf": "^6.0.1"
+  }
+}

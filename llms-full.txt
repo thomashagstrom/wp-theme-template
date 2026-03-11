@@ -1,0 +1,27 @@
+# example.com - Extended AI Crawl Guide
+
+## Purpose
+
+- Describe the structure of a site initialized from Editorial Starter.
+- Highlight the default homepage sections, content rails, and optional commerce areas.
+
+## Key URLs
+
+- Home: https://example.com/
+- Posts index: https://example.com/blog/
+- Newsletter anchor: https://example.com/#newsletter-signup
+- Featured story placeholder: https://example.com/featured-story/
+- Feed: https://example.com/feed/
+- Category archive root: https://example.com/category/
+- Tag archive root: https://example.com/tag/
+
+## Content Notes
+
+- The homepage usually contains a hero, featured stories grid, newsletter signup, optional campaign spotlight, and latest posts grid.
+- Shopify support is optional and only active when the Shopify pattern or storefront markup is used.
+- Structured data defaults to WebSite, Organization, Article, and BreadcrumbList.
+
+## Refresh Guidance
+
+- Replace this file during theme initialization so URLs match the deployed site.
+- Keep newsletter, featured-story, and archive URLs aligned with the real information architecture.

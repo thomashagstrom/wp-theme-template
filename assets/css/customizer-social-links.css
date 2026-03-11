@@ -1,0 +1,46 @@
+.editorial-starter-social-links {
+    margin-top: 12px;
+    display: grid;
+    gap: 12px;
+}
+
+.editorial-starter-social-links-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+}
+
+.editorial-starter-social-link {
+    display: grid;
+    gap: 8px;
+}
+
+.editorial-starter-social-field label {
+    display: grid;
+    gap: 4px;
+}
+
+.editorial-starter-social-field-title {
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #555d66;
+}
+
+.editorial-starter-social-field input[type="text"],
+.editorial-starter-social-field input[type="url"] {
+    width: 100%;
+}
+
+.editorial-starter-social-link .editorial-starter-remove-social-link {
+    align-self: flex-start;
+    padding: 0;
+    color: #b32d2e;
+}
+
+.editorial-starter-social-links .add-social-link {
+    justify-self: flex-start;
+}
